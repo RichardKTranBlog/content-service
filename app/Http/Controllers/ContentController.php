@@ -12,6 +12,7 @@ class ContentController extends Controller
             'content-3' => 'This is content 3',
             'content-4' => 'This is content 4',
             'content-5' => 'This is content 5',
+            'content-6' => 'This is content 6',
         ]);
     }
 }
