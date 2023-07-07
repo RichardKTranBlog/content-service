@@ -1,0 +1,29 @@
+version: '3.7'
+services:
+  nginx:
+      image: 'arm64v8/nginx:stable-alpine'
+      container_name: content_service_nginx
+      ports:
+        - '8080:80'
+      volumes:
+        - ./:/var/www/html
+        - ./docker-nginx-site.conf:/etc/nginx/conf.d/default.conf
+      networks:
+        - content_service_network
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: content_service_app
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - content_service_network
+
+#Volumes
+volumes:
+  dbdata:
+
+networks:
+  content_service_network:
+    driver: bridge
