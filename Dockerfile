@@ -1,17 +1,12 @@
-FROM arm64v8/php:8.1-fpm
-
-# Set working directory
-WORKDIR /var/www/html/
-
-USER root
-
-# Copy composer.lock and composer.json into the working directory
-COPY composer.json ./
+# Step 1: Define the base image
+FROM php:8.1-fpm
 
 # Install dependencies for the operating system software
 RUN apt-get update && apt-get install -y \
+    nginx \
     build-essential \
     libpng-dev \
+    libxml2-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     locales \
@@ -24,27 +19,41 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     curl
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install extensions for php
-RUN docker-php-ext-install pdo_mysql zip exif pcntl sockets bcmath
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd
+# Step 3: Install required PHP extensions
+# RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Install composer (php package manager)
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copy existing application directory contents to the working directory
-COPY . ./
-#Copy existing application directory permissions
-# COPY --chown=khoatran:khoatran . /var/www/html
+# Step 4: Set the working directory
+WORKDIR /var/www/html
 
+
+# Step 5: Copy project files
+COPY . .
+
+# Step 6: Set permissions
 RUN chown -R www-data:www-data .
-
-# Expose port 9000 and start php-fpm server (for FastCGI Process Manager)
-EXPOSE 9000
 
 USER www-data
 
-CMD ["php-fpm"]
+RUN composer install \
+    --optimize-autoloader \
+    --no-dev
+
+USER root
+
+# Remove the default Nginx configuration
+RUN rm /etc/nginx/sites-available/default
+
+# Unlink the default Nginx configuration
+RUN unlink /etc/nginx/sites-enabled/default
+
+# Step 7: Configure Nginx
+COPY docker-nginx-site.conf /etc/nginx/conf.d/default.conf
+
+# Step 8: Expose port
+EXPOSE 80
+
+# CMD service nginx start && php-fpm
+CMD service nginx start && php-fpm
